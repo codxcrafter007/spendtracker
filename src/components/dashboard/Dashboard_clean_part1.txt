@@ -1,0 +1,84 @@
+﻿import React, { useState, useEffect } from 'react';
+import { Card } from '../ui/Card';
+import { FAB } from '../ui/FAB';
+import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatCurrency } from '../../utils/helpers';
+import { getTodayTotal, getWeekTotal, getMonthTotal, getTopCategory, getCategoryBreakdown, getTrendData, getPreviousWeekTotal, getPreviousMonthTotal } from '../../lib/db/expenseStore';
+import { CategoryBreakdownChart } from '../charts/CategoryBreakdownChart';
+import { SpendingTrendChart } from '../charts/SpendingTrendChart';
+import { DatePickerInput } from '../ui/DatePicker';
+import { CongratulationsCard } from './CongratulationsCard';
+import type { CategoryType } from '../../types';
+
+export const Dashboard: React.FC = () => {
+    const { user } = useAuth();
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [todayTotal, setTodayTotal] = useState(0);
+    const [weekTotal, setWeekTotal] = useState(0);
+    const [monthTotal, setMonthTotal] = useState(0);
+    const [topCategory, setTopCategory] = useState<{ category: CategoryType; total: number } | null>(null);
+    const [categoryData, setCategoryData] = useState<{ category: CategoryType; total: number; count: number }[]>([]);
+    const [trendData, setTrendData] = useState<{ date: string; amount: number }[]>([]);
+    const [previousWeekTotal, setPreviousWeekTotal] = useState(0);
+    const [previousMonthTotal, setPreviousMonthTotal] = useState(0);
+
+    useEffect(() => {
+        if (user) {
+            loadSummary();
+        }
+    }, [user]);
+
+    const loadSummary = async () => {
+        if (!user) return;
+
+        try {
+            const [today, week, month, top, categories, trend, prevWeek, prevMonth] = await Promise.all([
+                getTodayTotal(user.id),
+                getWeekTotal(user.id),
+                getMonthTotal(user.id),
+                getTopCategory(user.id, 'month'),
+                getCategoryBreakdown(user.id, 'month'),
+                getTrendData(user.id, 'month'),
+                getPreviousWeekTotal(user.id),
+                getPreviousMonthTotal(user.id),
+            ]);
+
+            setTodayTotal(today);
+            setWeekTotal(week);
+            setMonthTotal(month);
+            setTopCategory(top);
+            setCategoryData(categories);
+            setTrendData(trend);
+            setPreviousWeekTotal(prevWeek);
+            setPreviousMonthTotal(prevMonth);
+        } catch (error) {
+            console.error('Failed to load summary:', error);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/30 to-neutral-50 dark:from-neutral-950 dark:via-primary-950/20 dark:to-neutral-900">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Congratulations Cards */}
+                {weekTotal > 0 && previousWeekTotal > 0 && weekTotal < previousWeekTotal && (
+                    <CongratulationsCard
+                        type="week"
+                        currentAmount={weekTotal}
+                        previousAmount={previousWeekTotal}
+                        savings={previousWeekTotal - weekTotal}
+                        savingsPercentage={((previousWeekTotal - weekTotal) / previousWeekTotal) * 100}
+                    />
+                )}
+                {monthTotal > 0 && previousMonthTotal > 0 && monthTotal < previousMonthTotal && (
+                    <CongratulationsCard
+                        type="month"
+                        currentAmount={monthTotal}
+                        previousAmount={previousMonthTotal}
+                        savings={previousMonthTotal - monthTotal}
+                        savingsPercentage={((previousMonthTotal - monthTotal) / previousMonthTotal) * 100}
+                    />
+                )}
+

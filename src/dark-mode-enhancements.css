@@ -1,0 +1,10 @@
+/* Enhanced dark mode styles */
+body.dark {
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+}
+
+/* Better chart card contrast in dark mode */
+.dark .chart-card {
+    background: linear-gradient(135deg, #1f1f1f 0%, #2a2a2a 100%);
+    border-color: rgba(99, 102, 241, 0.3);
+}
